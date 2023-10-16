@@ -9,7 +9,10 @@ enable_testing()
 
 include_directories(src/include)
 
-add_library(cudaKernels src/lib/kernels.cu)
+add_library(cudaKernels 
+    src/lib/kernels.cu
+    src/lib/device_minors.cu
+)
 add_executable(takeMinors cudaMinors.cu)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

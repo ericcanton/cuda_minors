@@ -1,56 +1,66 @@
 #include <iostream>
-#include "kernels.cuh"
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
+#include <thrust/sequence.h>
 
-void cpu_minors(int *mat, int *out, int m, int n)
-{
-    for (int i = 0; i < m; i++)
-    {
-        int *minor = new int[(m - 1) * (n - 1)];
-        for (int j = 0; j < n; j++)
-        {
-            int minor_i = 0;
-            for (int k = 0; k < m; k++)
-            {
-                if (k == i)
-                    continue;
-                for (int l = 0; l < n; l++)
-                {
-                    if (l == j)
-                        continue;
-                    minor[minor_i++] = mat[k * n + l];
-                }
-            }
-            out[i * n + j] = minor[0] * minor[3] - minor[1] * minor[2];
-        }
-    }
-}
+#include "device_minors.cuh"
 
 int main()
 {
-    size_t n = 1 << 3;
-    float *x, *y, *z;
-    cudaMallocManaged(&x, n * sizeof(int));
-    cudaMallocManaged(&y, n * sizeof(int));
-    cudaMallocManaged(&z, n * sizeof(int));
-
-    for (int i = 0; i < n; i++)
+    int N = 5;
+    int numBlocks = 1;
+    while (numBlocks < N)
     {
-        x[i] = 1.0f;
-        y[i] = 2.0f;
+        numBlocks << 1;
     }
+    int numMinors = (5 * 4) / 2;
 
-    add<<<n, 1>>>(x, y, z, n);
+    // initialize 2 x N matrix with 0..<2N-1
+    thrust::device_vector<int> mat(2 * N);
+    thrust::sequence(mat.begin(), mat.end());
 
-    cudaDeviceSynchronize();
+    thrust::device_vector<int> minors(numMinors);
+    thrust::host_vector<int> d_minors_result(numMinors);
 
-    for (int i = 0; i < n; i++)
+    // do the same on the host
+    thrust::host_vector<int> h_mat(2 * N);
+    thrust::sequence(h_mat.begin(), h_mat.end());
+
+    thrust::host_vector<int> h_minors(numMinors);
+
+    // call the kernel
+    minors2byN_kernel<<<numBlocks, numBlocks - 1>>>(minors, mat, N);
+
+    // copy the result back to the host
+    thrust::copy(minors.begin(), minors.end(), d_minors_result.begin());
+
+    // do the same on the host
+    minors2byN_cpu(h_minors, h_mat, N);
+
+    // print the vectors of minors
+    std::cout << "Device: ";
+    for (int i = 0; i < numMinors; i++)
     {
-        std::cout << z[i] << std::endl;
+        std::cout << d_minors_result[i] << " ";
     }
+    std::cout << std::endl;
 
-    cudaFree(x);
-    cudaFree(y);
-    cudaFree(z);
+    std::cout << "CPU: ";
+    for (int i = 0; i < numMinors; i++)
+    {
+        std::cout << h_minors[i] << " ";
+    }
+    std::cout << std::endl;
+
+    // // check the result
+    // for (int i = 0; i < numMinors; i++)
+    // {
+    //     if (h_minors[i] != d_minors_result[i])
+    //     {
+    //         std::cout << "Error at index " << i << std::endl;
+    //         std::cout << "Host: " << h_minors[i] << std::endl;
+    //         std::cout << "Device: " << d_minors_result[i] << std::endl;
+    //         return 1;
+    //     }
+    // }
 }
