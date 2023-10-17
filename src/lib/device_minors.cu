@@ -1,7 +1,8 @@
 
 #include "device_minors.cuh"
+#include <iostream>
 
-__global__ void minors2byN_kernel(int *minors_out, int *matrix, size_t N)
+__global__ void minors2xN_kernel(int *minors_out, int *matrix, size_t N)
 {
     auto col1 = blockIdx.x * blockDim.x + threadIdx.x;
     auto col2 = blockIdx.y * blockDim.y + threadIdx.y;
@@ -10,28 +11,30 @@ __global__ void minors2byN_kernel(int *minors_out, int *matrix, size_t N)
     minors_out[idx(col1, col2, N)] = minor2x2_2xN(matrix, col1, col2, N);
 }
 
-void minors2byN_cpu(int *minors_out, int *matrix, size_t N)
+void minors2xN_cpu(int *minors_out, int *matrix, size_t N)
 {
     for (size_t col1 = 0; col1 < N; col1++)
     {
-        for (size_t col2 = col1; col2 < N; col2++)
+        for (size_t col2 = col1 + 1; col2 < N; col2++)
         {
-            minors_out[idx(col1, col2, N)] = minor2x2_2xN(matrix, col1, col2, N);
+            size_t index = idx(col1, col2, N);
+            minors_out[index] = minor2x2_2xN(matrix, col1, col2, N);
+            std::cout << minors_out[index] << " ";
         }
     }
 }
 
-__global__ void minors2byN_kernel(thrust::device_vector<int> minors_out, thrust::device_vector<int> matrix, size_t N)
+void minors2xN_device(int numBlocks, int threadsPerBlock, thrust::device_vector<int> minors_out, thrust::device_vector<int> matrix, size_t N)
 {
-    minors2byN_kernel(
+    minors2xN_kernel<<<numBlocks, threadsPerBlock>>>(
         thrust::raw_pointer_cast(minors_out.data()),
         thrust::raw_pointer_cast(matrix.data()),
         N);
 }
 
-void minors2byN_cpu(thrust::device_vector<int> minors_out, thrust::device_vector<int> matrix, size_t N)
+void minors2xN_cpu(thrust::host_vector<int> minors_out, thrust::host_vector<int> matrix, size_t N)
 {
-    minors2byN_cpu(
+    minors2xN_cpu(
         thrust::raw_pointer_cast(minors_out.data()),
         thrust::raw_pointer_cast(matrix.data()),
         N);

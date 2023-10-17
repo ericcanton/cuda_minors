@@ -1,3 +1,4 @@
+#include <concepts>
 #include <iostream>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -5,13 +6,29 @@
 
 #include "device_minors.cuh"
 
+template <typename T>
+concept Sized = requires(T t) {
+    {
+        t.size()
+    } -> std::convertible_to<size_t>;
+};
+
+void print_vector(Sized auto vec)
+{
+    for (int i = 0; i < vec.size(); i++)
+    {
+        std::cout << vec[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
 int main()
 {
     int N = 5;
     int numBlocks = 1;
     while (numBlocks < N)
     {
-        numBlocks << 1;
+        numBlocks = numBlocks << 1;
     }
     int numMinors = (5 * 4) / 2;
 
@@ -29,28 +46,23 @@ int main()
     thrust::host_vector<int> h_minors(numMinors);
 
     // call the kernel
-    minors2byN_kernel<<<numBlocks, numBlocks - 1>>>(minors, mat, N);
+    minors2xN_device(numBlocks, numBlocks - 1, minors, mat, N);
 
     // copy the result back to the host
     thrust::copy(minors.begin(), minors.end(), d_minors_result.begin());
 
     // do the same on the host
-    minors2byN_cpu(h_minors, h_mat, N);
+    // minors2xN_cpu(h_minors, h_mat, N);
 
     // print the vectors of minors
     std::cout << "Device: ";
-    for (int i = 0; i < numMinors; i++)
-    {
-        std::cout << d_minors_result[i] << " ";
-    }
-    std::cout << std::endl;
 
-    std::cout << "CPU: ";
-    for (int i = 0; i < numMinors; i++)
-    {
-        std::cout << h_minors[i] << " ";
-    }
-    std::cout << std::endl;
+    // std::cout << "CPU: ";
+    // for (int i = 0; i < numMinors; i++)
+    // {
+    //     std::cout << h_minors[i] << " ";
+    // }
+    // std::cout << std::endl;
 
     // // check the result
     // for (int i = 0; i < numMinors; i++)
