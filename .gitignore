@@ -1,1 +1,18 @@
-build/**
+**/CMakeFiles/
+build/
+doc/
+test/*
+!test/*.cpp
+!test/*.cu
+!test/CMakeLists.txt
+Testing/
+
+CMakeCache.txt
+CMakeDoxyfile.in
+*.cmake
+Makefile
+DartConfiguration.tcl
+*.a
+
+# project specific
+takeMinors
