@@ -8,11 +8,12 @@
 #include "cuda_runtime.h"
 
 #define BLOCK_SIZE 32
-#define idx(i, j, N) ((i) * (N) + (j))
-#define minor2x2_2xN(mat, i, j, N) (mat[idx(i, 0, N)] * mat[idx(j, 1, N)] - mat[idx(i, 1, N)] * mat[idx(j, 0, N)])
+// TODO: change this to column major if there's a reason/standard
+// row major format
+#define idxrm(r, c, nCol) (r * nCol + c)
+#define minor_idx_2xN(col1, col2, N) (idxrm(col1, col2, N) - ((col1 + 2) * (col1 + 1) / 2))
 
-__global__ void minors2xN_kernel(int *minors_out, int *matrix, size_t N);
-void minors2xN_device(int numBlocks, int threadsPerBlock, thrust::device_vector<int> minors_out, thrust::device_vector<int> matrix, size_t N);
+__global__ void minors2xN_kernel(thrust::device_vector<int> *determinantsArray, thrust::device_vector<int> *matrixIn, size_t N);
+void minors2xN_device(int numBlocks, int threadsPerBlock, thrust::device_vector<int> *minors_out, thrust::device_vector<int> *matrix, size_t N);
 
-void minors2xN_cpu(int *minors_out, int *matrix, size_t N);
-void minors2xN_cpu(thrust::host_vector<int> minors_out, thrust::host_vector<int> matrix, size_t N);
+void minors2xN_cpu(thrust::host_vector<int> *minors_out, thrust::host_vector<int> *matrix, size_t N);

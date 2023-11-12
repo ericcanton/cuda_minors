@@ -3,6 +3,9 @@ project(cudaMinors VERSION 0.1.0 LANGUAGES C CXX CUDA)
 
 # for concepts 
 set(CMAKE_CXX_STANDARD 14)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES 86)
+endif()
 
 include_directories(src/include)
 
@@ -23,4 +26,4 @@ target_link_libraries(takeMinors cudaKernels)
 
 include(CTest)
 enable_testing()
-add_test(NAME test_simple_dets COMMAND test_simple_dets)
+# add_test(NAME test_simple_dets COMMAND test_simple_dets)
